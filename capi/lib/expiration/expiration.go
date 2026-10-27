@@ -60,14 +60,14 @@ func queryExpiration(cert *x509.Certificate, roots, intermediates *x509.CertPool
 		}
 		return ExpirationStatus{Raw: err.Error(), Status: IssuerUnknown}
 	}
-	// Pin verification time inside the cert's own validity window so an
-	// expired ancestor surfaces as IssuerUnknown rather than an expiration
-	// error attributed to the cert under test.
+	// Verify non-expired certificates at the current check time. Using the
+	// certificate's NotBefore can incorrectly reject a chain whose issuer
+	// became valid later. Expired certificates are handled above.
 	opts := x509.VerifyOptions{
 		Roots:         roots,
 		Intermediates: intermediates,
 		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-		CurrentTime:   cert.NotBefore.Add(time.Second),
+		CurrentTime:   now,
 	}
 	if _, err := cert.Verify(opts); err != nil {
 		return ExpirationStatus{Raw: err.Error(), Status: IssuerUnknown}
